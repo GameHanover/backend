@@ -6,6 +6,8 @@ from .filters import (FilterConnectionField)
 from .schemas.coach import (CoachNode, CoachConnection, CreateCoach,
                             UpdateCoach)
 from .schemas.address import (AddressNode, AddressConnection)
+from .schemas.field import (FieldNode, FieldConnection)
+from .schemas.game import (GameNode, GameConnection)
 
 
 class Query(ObjectType):
@@ -14,9 +16,13 @@ class Query(ObjectType):
 
     coach = relay.Node.Field(CoachNode)
     address = relay.Node.Field(AddressNode)
+    field = relay.Node.Field(FieldNode)
+    game = relay.Node.Field(GameNode)
 
-    all_coach = FilterConnectionField(CoachConnection)
-    all_address = FilterConnectionField(AddressConnection)
+    all_coaches = FilterConnectionField(CoachConnection)
+    all_addresses = FilterConnectionField(AddressConnection)
+    all_fields = FilterConnectionField(FieldConnection)
+    all_games = FilterConnectionField(GameConnection)
 
 
 class Mutation(ObjectType):
