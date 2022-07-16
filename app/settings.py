@@ -13,4 +13,4 @@ DEBUG = getenv('DEBUG', False)
 TESTING = getenv('TESTING', False)
 BCRYPT_LOG_ROUNDS = 13
 
-GRAPHIQL = getenv('GRAPHIQL', True)
+GRAPHIQL = getenv('GRAPHIQL', False)

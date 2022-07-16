@@ -1,5 +1,5 @@
 """ Graphql Schema Module """
-from graphene import (ObjectType, String, Field, relay, Schema, Argument,
+from graphene import (ObjectType, Field, relay, Schema, Argument,
                       Mutation)
 
 from .filters import (FilterConnectionField)
@@ -8,6 +8,7 @@ from .schemas.coach import (CoachNode, CoachConnection, CreateCoach,
 from .schemas.address import (AddressNode, AddressConnection)
 from .schemas.field import (FieldNode, FieldConnection)
 from .schemas.game import (GameNode, GameConnection)
+from .schemas.version import (VersionNode, resolve_version)
 
 
 class Query(ObjectType):
@@ -23,6 +24,11 @@ class Query(ObjectType):
     all_addresses = FilterConnectionField(AddressConnection)
     all_fields = FilterConnectionField(FieldConnection)
     all_games = FilterConnectionField(GameConnection)
+
+    version = Field(
+        VersionNode,
+        resolver=resolve_version
+    )
 
 
 class Mutation(ObjectType):

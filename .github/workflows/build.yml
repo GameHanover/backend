@@ -1,0 +1,129 @@
+name: build
+
+on: 
+  push:
+    paths-ignore:
+    - 'README.md'
+    - 'hooks/**'
+    - 'tests/**'
+    - '.github/workflows/**'
+
+jobs:    
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10]
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        ports:
+          - 5432:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        fetch-depth: 0
+
+    - name: Configure Job
+      run: |
+        git config user.name "$GITHUB_ACTOR"
+        git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+        echo "VERSION_CHANGE=0" >> $GITHUB_ENV
+        echo "CONFIG_FILE=${GITHUB_WORKSPACE}/config-sample.cfg" >> $GITHUB_ENV
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+
+    - name: Test with pytest
+      run: |
+        pip install -r $GITHUB_WORKSPACE/test_requirements.txt
+        coverage run -m pytest --junitxml=coverage-reports/coverage-results.xml
+
+    - name: Generate reports
+      run: |
+        coverage xml -o coverage-reports/coverage-tests.xml
+
+    - name: fix code coverage paths for Sonarcloud
+      working-directory: coverage-reports
+      run: |
+        sed -i 's@'$GITHUB_WORKSPACE'@/github/workspace/@g' coverage-results.xml
+
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.CI_API_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    - name: Increment Version - if same as prior commit
+      if: github.ref == 'refs/heads/main'
+      run: |
+        VERSION_CHANGE=$(${GITHUB_WORKSPACE}/.github/workflows/diff_script.sh)
+        echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+        echo "VERSION_CHANGE=$VERSION_CHANGE" >> $GITHUB_ENV
+
+    - name: Version for Non-Main branches
+      if: github.ref != 'refs/heads/main'
+      run: |
+        echo "VERSION=${{ github.ref }}-$(cat VERSION)" >> $GITHUB_ENV
+  
+    - name: Commit Updated Version File
+      if: env.VERSION_CHANGE == 1 && github.ref == 'refs/heads/main'
+      uses: EndBug/add-and-commit@v7.4.0
+      with:
+        add: 'VERSION'
+        message: 'Updated VERSION file'
+
+    - name: Set Tag Name
+      if: github.ref == 'refs/heads/main'
+      run: |
+        TAG=v$(cat VERSION)
+        git tag $TAG
+        git push origin --tags
+
+    - name: Build image 
+      if: github.ref == 'refs/heads/main'
+      run: |
+        docker build . --tag "${{ secrets.DOCKER_REPO }}:${{ env.VERSION }}"
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: '${{ secrets.DOCKER_REPO }}:${{ env.VERSION }}'
+        format: 'template'
+        template: '@/contrib/sarif.tpl'
+        ignore-unfixed: true
+        severity: 'LOW,MEDIUM,HIGH,CRITICAL'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v1
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Publish to Registry
+      if: github.ref == 'refs/heads/master'
+      run: |
+        docker login -u ${{ secrets.DOCKER_USER }} -p ${{ secrets.DOCKER_TOKEN }}
+        docker tag ${{ secrets.DOCKER_REPO }}:${{ env.VERSION }} ${{ secrets.DOCKER_REPO }}:latest
+        docker push ${{ secrets.DOCKER_REPO }}:latest
+        docker push ${{ secrets.DOCKER_REPO }}i:${{ env.VERSION }}
