@@ -54,20 +54,20 @@ jobs:
         pip install -r requirements.txt
 
 
-#    - name: Test with pytest
-#      run: |
-#        pip install -r $GITHUB_WORKSPACE/test_requirements.txt
-#        coverage run -m pytest --junitxml=coverage-reports/coverage-results.xml
-#
-#    - name: Generate reports
-#      run: |
-#        coverage xml -o coverage-reports/coverage-tests.xml
-#
-#    - name: fix code coverage paths for Sonarcloud
-#      working-directory: coverage-reports
-#      run: |
-#        sed -i 's@'$GITHUB_WORKSPACE'@/github/workspace/@g' coverage-results.xml
-#
+    - name: Test with pytest
+      run: |
+        pip install -r $GITHUB_WORKSPACE/test_requirements.txt
+        coverage run -m pytest --junitxml=coverage-reports/coverage-results.xml
+
+    - name: Generate reports
+      run: |
+        coverage xml -o coverage-reports/coverage-tests.xml
+
+    - name: fix code coverage paths for Sonarcloud
+      working-directory: coverage-reports
+      run: |
+        sed -i 's@'$GITHUB_WORKSPACE'@/github/workspace/@g' coverage-results.xml
+
 #    - name: SonarCloud Scan
 #      uses: SonarSource/sonarcloud-github-action@master
 #      env:

@@ -4,10 +4,9 @@ from graphene import (String, Boolean, ID, InputObjectType, Node,
 from graphene_sqlalchemy import SQLAlchemyObjectType
 from app.filters import FilterConnectionField
 
-from helpers.utils import (input_to_dictionary)
 from app import (DB)
 from app.database import (Field as FieldModel, Address)
-from .helpers import (TotalCount, Address as AddressField)
+from .helpers import (TotalCount, Address as AddressField, input_to_dictionary)
 
 
 class FieldNode(SQLAlchemyObjectType):
@@ -66,23 +65,23 @@ class CreateField(Mutation):
 
     class Arguments:
         """Arguments for Create Field"""
-        Field_data = CreateFieldInput(required=True)
+        field_data = CreateFieldInput(required=True)
 
-    def mutate(self, info, Field_data=None):
+    def mutate(self, info, field_data=None):
         """Create Field Graphql"""
-        data = input_to_dictionary(Field_data)
+        data = input_to_dictionary(field_data)
 
-        Field = FieldModel(**data)
-        Field_db = DB.session.query(FieldModel).filter_by(
+        field = FieldModel(**data)
+        field_db = DB.session.query(FieldModel).filter_by(
             description=data['description']).first()
-        if Field_db:
+        if field_db:
             print('need to update')
-            Field_db = Field
+            field_db = field
         else:
-            DB.session.add(Field)
+            DB.session.add(field)
         DB.session.commit()
 
-        return CreateField(Field=Field)
+        return CreateField(Field=field)
 
 
 class UpdateFieldInput(InputObjectType, FieldAttribute):
@@ -97,15 +96,15 @@ class UpdateField(Mutation):
 
     class Arguments:
         """Arguments for Update Field"""
-        Field_data = UpdateFieldInput(required=True)
+        field_data = UpdateFieldInput(required=True)
 
-    def mutate(self, info, Field_data):
+    def mutate(self, info, field_data):
         """Update Field Graphql"""
-        data = input_to_dictionary(Field_data)
+        data = input_to_dictionary(field_data)
 
-        Field = DB.session.query(FieldModel).filter_by(id=data['id']).first()
-        Field.update(data)
+        field = DB.session.query(FieldModel).filter_by(id=data['id']).first()
+        field.update(data)
         DB.session.commit()
-        Field = DB.session.query(FieldModel).filter_by(id=data['id']).first()
+        field = DB.session.query(FieldModel).filter_by(id=data['id']).first()
 
-        return UpdateField(Field=Field)
+        return UpdateField(Field=field)

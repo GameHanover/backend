@@ -4,10 +4,9 @@ from graphene import (String, Boolean, ID, InputObjectType, Node,
 from graphene_sqlalchemy import SQLAlchemyObjectType
 from app.filters import FilterConnectionField
 
-from helpers.utils import (input_to_dictionary)
 from app import (DB)
 from app.database import (Game as GameModel, Address)
-from .helpers import (TotalCount, Address as AddressField)
+from .helpers import (TotalCount, Address as AddressField, input_to_dictionary)
 
 
 class GameNode(SQLAlchemyObjectType):

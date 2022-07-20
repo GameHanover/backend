@@ -1,2 +1,3 @@
 pytest==7.1.2
 coverage==6.4.2
+git+https://github.com/erikdeirdre/test_helper#egg=testhelper
